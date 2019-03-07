@@ -2,30 +2,89 @@
 - name: Installtion d'Apache
   hosts: all
   tasks:
+      
   - name: Inscrire le nouveau dépôt
     apt_repository:
       repo: deb http://ftp.fr.debian.org/debian/ stretch main
       state: present
       update_cache: yes
+      
   - name: Installation d'apache2
     apt:
       name: apache2,ca-certificates,apt-transport-https
       state: present
+      
   - name: Démarrer le service Apache
     service:
       name: apache2
       state: started
-      enabled: yes 
+      enabled: yes
+      
   - name: Enregistrer une clé
     apt_key:
       url: https://packages.sury.org/php/apt.gpg
       state: present
+      
   - name: Inscrire le nouveau dépôt
     apt_repository:
       repo: deb http://packages.sury.org/php/ stretch main
       state: present
       update_cache: yes
+      
   - name: Installation PHP7 
     apt:
       name: php
       state: present
+      
+- name: Installation de Mysql
+  hosts: all
+  tasks:
+      
+  - name: Installation de python-pip
+    apt:
+      name: python-pip
+      state: present
+  - name: Installer le module Python pour Mysql 
+    pip:
+      name: PyMySQL
+      state: present
+      
+  - name: Installation de mysql-server 
+    apt: 
+      name: mysql-server
+      state: present
+      
+  - name: Gestion du my.cnf
+    copy:
+      src: /root/autres/my.cnf.j2
+      dest: /root/.my.cnf
+      owner: root
+      group: root
+      mode: 0600
+  
+  - name: Démarrer le service mysql
+    service:
+      name: mysql
+      state: restarted
+      enabled: yes
+  
+  - name: Gestion du mot de passe du root 
+    mysql_user:
+      name: root 
+      password: btsinfo
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+      
+  - name: Création d'une base de données 
+    mysql_db:
+      name: "{{mysql_db}}"
+      state: present 
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+      
+  - name: Création de l'utilisateur eleve et affectation des privilèges sur une base de données 
+    mysql_user:
+      name: "{{mysql_user}}"
+      password: "{{mysql_password}}"
+      host: localhost
+      priv: "{{mysql_db}}.*:ALL,GRANT"
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+      
